@@ -1,101 +1,179 @@
 import os
 import json
+import time
+import random
 import argparse
 import numpy as np
 
-# Importaciones directas de configuración y registro
-from src.config import DATA_PROCESSED_DIR, MODELS_DIR, RESULTS_METRICS_DIR
+from src.config import (
+    DATA_PROCESSED_DIR,
+    MODELS_DIR,
+    RESULTS_METRICS_DIR,
+    RESULTS_PRED_DIR,
+    RESULTS_FIG_DIR,
+)
 from src import REGISTRY
 
+OBJETIVOS = ("precio", "retorno")
+MODELOS_RETORNO = ("lstm", "gru")
+
+
+def _fijar_semillas(semilla, usar_tf=False):
+    random.seed(semilla)
+    np.random.seed(semilla)
+    if usar_tf:
+        import tensorflow as tf
+
+        tf.random.set_seed(semilla)
+
+
+def _cargar_dataset(objetivo):
+    ruta = os.path.join(DATA_PROCESSED_DIR, "dataset.npz")
+    if not os.path.exists(ruta):
+        raise FileNotFoundError(
+            f"No se encontro {ruta}. Ejecuta primero: python -m src.data.prepare"
+        )
+
+    data = np.load(ruta, allow_pickle=True)
+
+    if objetivo == "precio":
+        return {
+            "X_train": data["X_train"],
+            "y_train": data["y_train"],
+            "X_test": data["X_test"],
+            "y_test": data["y_test"],
+            "y_test_real": data["y_test_real"].flatten(),
+            "scaler": data["scaler"].item(),
+            "fechas": data["test_dates"].astype(str),
+            "base_precio": data["base_precio"].flatten(),
+        }
+
+    return {
+        "X_train": data["Xret_train"],
+        "y_train": data["r_train"],
+        "X_test": data["Xret_test"],
+        "y_test": data["r_test"],
+        "y_test_real": data["y_test_real"].flatten(),
+        "scaler": data["ret_scaler"].item(),
+        "fechas": data["test_dates"].astype(str),
+        "base_precio": data["base_precio"].flatten(),
+    }
+
+
+def _guardar_figura(nombre, fechas, real, pred, ruta):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(11, 4.5))
+    ax.plot(fechas, real, label="Real", linewidth=1.4)
+    ax.plot(fechas, pred, label="Predicho", linewidth=1.2, alpha=0.85)
+    ax.set_title(f"XMR-USD - {nombre}")
+    ax.set_ylabel("Precio (USD)")
+    ax.legend()
+    ax.grid(alpha=0.3)
+    fig.autofmt_xdate()
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=120)
+    plt.close(fig)
+
+
 def main():
-    print(">>> Ejecutando script de entrenamiento (CLI)...")
-    
-    parser = argparse.ArgumentParser(description="Script CLI para entrenamiento y evaluación de modelos.")
-    parser.add_argument("--modelo", type=str, required=True, choices=list(REGISTRY.keys()), help="Nombre del modelo a entrenar.")
-    parser.add_argument("--objetivo", type=str, default="precio", choices=["precio", "retorno"], help="Variable objetivo.")
-    parser.add_argument("--semilla", type=int, default=0, help="Semilla aleatoria para reproducibilidad.")
-    
+    parser = argparse.ArgumentParser(description="Entrena y evalua un modelo.")
+    parser.add_argument("--modelo", type=str, required=True, choices=list(REGISTRY.keys()))
+    parser.add_argument("--objetivo", type=str, default="precio", choices=list(OBJETIVOS))
+    parser.add_argument("--semilla", type=int, default=0)
     args = parser.parse_args()
 
-    print(f"--- Entrenando modelo: {args.modelo.upper()} | Objetivo: {args.objetivo} | Semilla: {args.semilla} ---")
+    if args.objetivo == "retorno" and args.modelo not in MODELOS_RETORNO:
+        raise SystemExit(
+            f"El objetivo 'retorno' solo aplica a {MODELOS_RETORNO}. "
+            f"Entrena '{args.modelo}' con --objetivo precio."
+        )
 
-    # 1. Cargar el dataset procesado
-    dataset_path = os.path.join(DATA_PROCESSED_DIR, "dataset.npz")
-    if not os.path.exists(dataset_path):
-        raise FileNotFoundError(f"No se encontró {dataset_path}. Ejecuta primero prepare.py")
+    print(
+        f"--- Entrenando {args.modelo.upper()} | objetivo: {args.objetivo} | "
+        f"semilla: {args.semilla} ---"
+    )
 
-    data = np.load(dataset_path, allow_pickle=True)
-    X_train = data["X_train"]
-    y_train = data["y_train"]
-    X_test = data["X_test"]
-    y_test = data["y_test"]
-    y_test_real = data["y_test_real"] if "y_test_real" in data else None
-    scaler = data["scaler"].item() if "scaler" in data else None
+    _fijar_semillas(args.semilla, usar_tf=REGISTRY[args.modelo].extension == ".keras")
+    ds = _cargar_dataset(args.objetivo)
 
-    # Configurar semilla
-    np.random.seed(args.semilla)
-    import tensorflow as tf
-    tf.random.set_seed(args.semilla)
+    modelo = REGISTRY[args.modelo]()
 
-    # 2. Instanciar y entrenar el modelo
-    model_class = REGISTRY[args.modelo]
-    model = model_class()
+    t0 = time.perf_counter()
+    modelo.fit(ds["X_train"], ds["y_train"])
+    preds_objetivo = modelo.predict(ds["X_test"], scaler=ds["scaler"])
+    segundos = time.perf_counter() - t0
 
-    print("Iniciando fase de entrenamiento (fit)...")
-    model.fit(X_train, y_train)
-
-    # 3. Generar predicciones en test
-    print("Generando predicciones sobre el conjunto de test...")
-    preds = model.predict(X_test, scaler=scaler)
-
-    if y_test_real is not None:
-        y_real_eval = y_test_real.flatten()
-    elif scaler is not None:
-        y_real_eval = scaler.inverse_transform(y_test.reshape(-1, 1)).flatten()
+    # Reconstruccion a precio USD
+    if args.objetivo == "retorno":
+        # El modelo devuelve el retorno logaritmico predicho: precio = base * exp(r)
+        preds_usd = ds["base_precio"] * np.exp(preds_objetivo)
     else:
-        y_real_eval = y_test.flatten()
+        preds_usd = preds_objetivo
 
-    min_len = min(len(y_real_eval), len(preds))
-    y_real_eval = y_real_eval[:min_len]
-    preds = preds[:min_len]
+    y_real = ds["y_test_real"]
+    min_len = min(len(y_real), len(preds_usd))
+    y_real, preds_usd = y_real[:min_len], preds_usd[:min_len]
+    base = ds["base_precio"][:min_len]
+    fechas = ds["fechas"][:min_len]
 
-    # 4. Calcular métricas
     from src.evaluation.metrics import mae, rmse, mape, acierto_direccion
-    score_mae = mae(y_real_eval, preds)
-    score_rmse = rmse(y_real_eval, preds)
-    score_mape = mape(y_real_eval, preds)
-    score_dir = acierto_direccion(y_real_eval, preds)
 
-    metrics_dict = {
+    metrics = {
         "modelo": args.modelo,
         "objetivo": args.objetivo,
         "semilla": args.semilla,
-        "mae": float(score_mae),
-        "rmse": float(score_rmse),
-        "mape": float(score_mape),
-        "acierto_direccion": float(score_dir)
+        "mae": mae(y_real, preds_usd),
+        "rmse": rmse(y_real, preds_usd),
+        "mape": mape(y_real, preds_usd),
+        "acierto_direccion": acierto_direccion(y_real, preds_usd, y_base=base),
+        "segundos_entrenamiento": round(segundos, 2),
+        "n_test": int(min_len),
     }
 
-    print(f"\nResultados de Evaluación:")
-    for k, v in metrics_dict.items():
+    print("\nResultados de evaluacion:")
+    for k, v in metrics.items():
         print(f"  - {k}: {v}")
 
-    # 5. Guardar artefactos y métricas en JSON
+    # Artefactos
     os.makedirs(MODELS_DIR, exist_ok=True)
     os.makedirs(RESULTS_METRICS_DIR, exist_ok=True)
+    os.makedirs(RESULTS_PRED_DIR, exist_ok=True)
+    os.makedirs(RESULTS_FIG_DIR, exist_ok=True)
 
-    if hasattr(model, "save"):
-        model_filename = os.path.join(MODELS_DIR, f"{args.modelo}_{args.objetivo}_seed{args.semilla}.keras")
-        try:
-            model.save(model_filename)
-            print(f"Modelo guardado en: {model_filename}")
-        except Exception as e:
-            print(f"Aviso al guardar modelo: {e}")
+    nombre = f"{args.modelo}_{args.objetivo}_seed{args.semilla}"
 
-    metrics_filename = os.path.join(RESULTS_METRICS_DIR, f"{args.modelo}_{args.objetivo}_seed{args.semilla}.json")
-    with open(metrics_filename, "w", encoding="utf-8") as f:
-        json.dump(metrics_dict, f, indent=4)
-    print(f"¡Métricas guardadas con éxito en: {metrics_filename}!\n")
+    ruta_modelo = os.path.join(MODELS_DIR, nombre + modelo.extension)
+    try:
+        modelo.save(ruta_modelo)
+        print(f"Modelo guardado en: {ruta_modelo}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso al guardar modelo: {exc}")
+
+    ruta_metrics = os.path.join(RESULTS_METRICS_DIR, nombre + ".json")
+    with open(ruta_metrics, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=4, ensure_ascii=False)
+
+    # Predicciones dia por dia (date, y_true, y_pred)
+    ruta_pred = os.path.join(RESULTS_PRED_DIR, nombre + "_test.csv")
+    with open(ruta_pred, "w", encoding="utf-8") as f:
+        f.write("date,y_true,y_pred\n")
+        for fecha, real, pred in zip(fechas, y_real, preds_usd):
+            f.write(f"{fecha},{real:.6f},{pred:.6f}\n")
+
+    ruta_fig = os.path.join(RESULTS_FIG_DIR, nombre + ".png")
+    try:
+        _guardar_figura(nombre, fechas, y_real, preds_usd, ruta_fig)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso al generar figura: {exc}")
+
+    print(f"Metricas: {ruta_metrics}")
+    print(f"Predicciones: {ruta_pred}")
+    print(f"Figura: {ruta_fig}\n")
+
 
 if __name__ == "__main__":
     main()

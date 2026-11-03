@@ -2,6 +2,8 @@ import numpy as np
 from src.models.base import BaseModel
 
 class MovingAverageModel(BaseModel):
+    nombre = "moving_average"
+
     def __init__(self, window=7):
         super().__init__()
         self.window = window

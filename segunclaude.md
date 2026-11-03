@@ -265,16 +265,23 @@ proyecto final/
 
 ---
 
-## 8. Pendientes (siguiente sesión)
+## 8. Pendientes (actualizado 2026-11-03)
 
-- [ ] **Documento:** quitar "regresión lineal" de los 4 puntos (§2 de este archivo).
-- [ ] **Documento:** alinear §VII.C con la arquitectura y ventana realmente usadas; añadir fuente de datos (yfinance `XMR-USD`, 2017-11-09 → hoy).
-- [ ] **Código:** crear el esqueleto de `ESTRUCTURA.md` (`config.py`, `download.py`, `prepare.py`, `base.py`, `metrics.py`).
-- [ ] **Código:** implementar `naive.py`, `moving_average.py`, `arima.py` (baselines primero).
-- [ ] **Código:** implementar `lstm.py` y `gru.py` (variantes precio y retorno).
-- [ ] **Código:** `compare.py` → `results/metrics/comparacion.csv` con los 5 modelos y las 4 métricas.
-- [ ] **Código:** `predict.py` → JSON para el frontend del compañero.
-- [ ] **Instalar:** `pip install statsmodels` en el venv del proyecto.
+Completado en la sesión del 3 de noviembre:
+
+- [x] **Bug de alineación corregido:** `y_test_real`, `base_precio`, `ret_test_real` y `test_dates` ahora tienen 656 filas, igual que `X_test` (antes sobraban/desfasaban 30 días y el naive reportaba MAE 54.12 en vez de 9.69).
+- [x] **Código:** objetivo `retorno` logarítmico implementado en `prepare.py` y `train.py` (precio reconstruido como `base · e^r`).
+- [x] **Código:** los 5 modelos entrenados y evaluados; `compare.py` agrega media ± desviación.
+- [x] **Código:** `predict.py` devuelve el JSON del contrato con el precio de mañana.
+- [x] **Código:** imports pesados movidos dentro de las funciones (los tests ya no cargan TensorFlow).
+- [x] **Extras:** `requirements.txt`, `README.md`, `results/predictions/`, `results/figures/`, tests de alineación.
+- [x] **Documento (preparado):** versión editada sin "regresión lineal", con fuente yfinance y epochs alineados. Falta reemplazar el .docx original (Word lo tiene abierto).
+
+Pendiente real:
+
+- [ ] Reemplazar `Propuesta_Monero_IEEE (1) (2).docx` por la versión editada (cerrar Word primero).
+- [ ] Escribir el análisis de resultados (qué modelo ganó y por qué) en el artículo/informe final.
+
 
 ---
 

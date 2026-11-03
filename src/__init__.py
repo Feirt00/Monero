@@ -1,13 +1,5 @@
-from src.models.naive import NaiveModel
-from src.models.moving_average import MovingAverageModel
-from src.models.arima import ARIMAModel
-from src.models.lstm import LSTMModel
-from src.models.gru import GRUModel
+"""Paquete principal del proyecto XMR-Forecast."""
 
-REGISTRY = {
-    "naive": NaiveModel,
-     "moving_average": MovingAverageModel,
-     "arima": ARIMAModel,
-     "lstm": LSTMModel,
-     "gru": GRUModel,
-}
+from src.models import REGISTRY
+
+__all__ = ["REGISTRY"]

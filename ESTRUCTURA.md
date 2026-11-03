@@ -269,10 +269,11 @@ __pycache__/
 
 ## 10. Checklist de entrega
 
-- [ ] `python -m src.data.download` corre limpio y reporta filas/nulos/huecos
-- [ ] `python -m src.data.prepare` genera `dataset.npz` con el split congelado
-- [ ] los 5 modelos pasan `pytest tests/` (contrato + no leakage + métricas)
-- [ ] `comparacion.csv` con los 5 modelos y las 4 métricas del documento (MAE, RMSE, MAPE, dirección)
-- [ ] `predict.py` devuelve JSON válido con el precio de mañana
-- [ ] gráficas real vs predicho por modelo en `results/figures/`
-- [ ] `README.md` con los comandos exactos para reproducir todo
+- [x] `python -m src.data.download` corre limpio y reporta filas/nulos/huecos
+- [x] `python -m src.data.prepare` genera `dataset.npz` con el split congelado y **salidas alineadas 1:1** (656 filas en ventanas, precios reales, fechas y base de retornos)
+- [x] los 5 modelos pasan `pytest tests/` (contrato + no leakage + métricas + alineación)
+- [x] `comparacion.csv` con los 5 modelos y las 4 métricas del documento (MAE, RMSE, MAPE, dirección)
+- [x] `predict.py` devuelve JSON válido con el precio de mañana
+- [x] gráficas real vs predicho por modelo en `results/figures/`
+- [x] `README.md` con los comandos exactos para reproducir todo
+- [ ] documento IEEE: quitar la regresión lineal de los 4 puntos y alinear §VII.C con la arquitectura/ventana reales

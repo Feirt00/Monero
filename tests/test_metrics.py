@@ -25,3 +25,10 @@ def test_acierto_direccion():
     y_true = [10, 12, 11]  # Cambios: +2, -1
     y_pred = [10, 13, 10]  # Cambios predichos: +3 (acierta), -2 (acierta)
     assert acierto_direccion(y_true, y_pred) == 100.0
+
+
+def test_acierto_direccion_con_base_explicita():
+    y_true = [10, 12, 11]
+    y_pred = [10, 9, 10]
+    base = [10, 10, 12]  # 0, +2/-1 reales ; -1/-2 predichos -> acierta solo el ultimo
+    assert acierto_direccion(y_true, y_pred, y_base=base) == 50.0

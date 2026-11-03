@@ -2,13 +2,15 @@ import numpy as np
 from src.models.base import BaseModel
 
 class NaiveModel(BaseModel):
+    nombre = "naive"
+
     def fit(self, X_train, y_train, X_val=None, y_val=None):
         # El modelo Naive no necesita entrenamiento interno
         print("Modelo Naive listo (no requiere entrenamiento).")
 
     def predict(self, X, scaler=None):
         # Toma el último valor de la ventana de tiempo como predicción (escalado)
-        preds_scaled = X[:, -1, 0]
+        preds_scaled = X[:, -1, 0] if X.ndim == 3 else X[:, -1]
         
         # Desescalar a USD si se proporciona el scaler
         if scaler is not None:

@@ -1,22 +1,23 @@
 from abc import ABC, abstractmethod
 
+
 class BaseModel(ABC):
+    """Contrato comun para todos los modelos del proyecto."""
+
+    # Extension del artefacto entrenado (las redes usan .keras)
+    extension = ".pkl"
+    nombre = "base"
+
     @abstractmethod
     def fit(self, X_train, y_train, X_val=None, y_val=None):
-        """Método para entrenar el modelo."""
-        pass
+        """Metodo para entrenar el modelo."""
 
     @abstractmethod
-    def predict(self, X):
-        """Método para generar predicciones."""
-        pass
+    def predict(self, X, scaler=None):
+        """Devuelve el objetivo predicho, desescalado si se pasa el scaler."""
 
-    @abstractmethod
     def save(self, filepath):
-        """Método para guardar el modelo entrenado."""
-        pass
+        """Guarda el modelo entrenado (por defecto no hay parametros que guardar)."""
 
-    @abstractmethod
     def load(self, filepath):
-        """Método para cargar un modelo previamente guardado."""
-        pass    
+        """Carga un modelo previamente guardado."""
