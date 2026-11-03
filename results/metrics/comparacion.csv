@@ -1,0 +1,2 @@
+modelo,objetivo,semilla,mae,rmse,mape,acierto_direccion
+naive,precio,0,54.115068307699865,76.92519019070883,14.631232280632883,49.76

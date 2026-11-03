@@ -1,0 +1,9 @@
+{
+    "modelo": "naive",
+    "objetivo": "precio",
+    "semilla": 0,
+    "mae": 54.115068307699865,
+    "rmse": 76.92519019070883,
+    "mape": 14.631232280632883,
+    "acierto_direccion": 49.76
+}

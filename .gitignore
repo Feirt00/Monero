@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Artefactos entrenados (se regeneran con src/train.py)
+/models/
+
+# Figuras generadas
+results/figures/
+
+# Entorno local
+.env
+.DS_Store
+Thumbs.db
