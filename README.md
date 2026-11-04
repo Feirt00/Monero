@@ -124,6 +124,11 @@ logarítmico** y el precio se reconstruye como `precio_t = precio_{t-1} · e^{r_
 las métricas se reportan siempre en USD para que los cinco modelos sean
 comparables.
 
+## Documentos
+
+- [`Propuesta_Monero_IEEE (1) (2).docx`](Propuesta_Monero_IEEE%20(1)%20(2).docx): propuesta inicial en formato IEEE.
+- [`Informe_Monero_Resultados.docx`](Informe_Monero_Resultados.docx): informe de implementación y resultados (6 páginas, 4 tablas y 3 figuras, mismo formato IEEE).
+
 ## Estructura
 
 Ver [`ESTRUCTURA.md`](ESTRUCTURA.md) para el detalle de carpetas, interfaces y
