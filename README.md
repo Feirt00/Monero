@@ -20,45 +20,92 @@ persistencia, la media móvil, ARIMA o una GRU?
 
 Protocolo: split cronológico 80/20 sin shuffle, `MinMaxScaler` ajustado **solo
 con train**, ventana de 30 días, semillas `[0, 1, 2]` en las redes y métricas
-MAE, RMSE, MAPE y % de acierto de dirección sobre **los mismos 656 días**.
+MAE, RMSE, MAPE y % de acierto de dirección sobre **los mismos 657 días**.
+
+## Requisitos
+
+- Python 3.12
+- Windows + PowerShell (los comandos de abajo)
+- ~2 GB libres (TensorFlow es la dependencia más pesada)
 
 ## Instalación
 
-```bash
+Todo se ejecuta **desde la carpeta `proyecto final`**:
+
+```powershell
+cd "C:\Aplicaciones\Sistemas Inteligentes\proyecto final"
+
 python -m venv .venv
-.venv\Scripts\activate          # Windows
-pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
+
+Activar el entorno es **opcional**; solo sirve para escribir `python` en vez de
+la ruta completa:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Si PowerShell bloquea la activación:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+> Las líneas rojas con `Pandas4Warning` **no son errores**: `yfinance` y `pandas`
+> las escriben por `stderr` y PowerShell las pinta como error. Se silencian con
+> `$env:PYTHONWARNINGS = "ignore"`.
 
 ## Reproducir todo
 
-```bash
-# 1) Datos (descarga y actualiza hasta hoy)
-python -m src.data.download
+Copia y pega todo el bloque para reproducir el proyecto de cero:
+
+```powershell
+cd "C:\Aplicaciones\Sistemas Inteligentes\proyecto final"
+$env:PYTHONWARNINGS = "ignore"
+
+# 1) Datos: descarga y actualiza XMR-USD hasta hoy
+#    -> data/raw/xmr_usd_diario.csv
+.\.venv\Scripts\python.exe -m src.data.download
 
 # 2) Split congelado + escaladores + ventanas (precio y retorno)
-python -m src.data.prepare
+#    -> data/processed/dataset.npz
+.\.venv\Scripts\python.exe -m src.data.prepare
 
 # 3) Baselines y modelo estadístico
-python -m src.train --modelo naive          --objetivo precio
-python -m src.train --modelo moving_average --objetivo precio
-python -m src.train --modelo arima          --objetivo precio
+.\.venv\Scripts\python.exe -m src.train --modelo naive          --objetivo precio
+.\.venv\Scripts\python.exe -m src.train --modelo moving_average --objetivo precio
+.\.venv\Scripts\python.exe -m src.train --modelo arima          --objetivo precio
 
 # 4) Redes recurrentes (3 semillas cada una)
-python -m src.train --modelo lstm --objetivo retorno --semilla 0
-python -m src.train --modelo lstm --objetivo retorno --semilla 1
-python -m src.train --modelo lstm --objetivo retorno --semilla 2
-python -m src.train --modelo gru  --objetivo retorno --semilla 0
-python -m src.train --modelo gru  --objetivo retorno --semilla 1
-python -m src.train --modelo gru  --objetivo retorno --semilla 2
+.\.venv\Scripts\python.exe -m src.train --modelo lstm --objetivo retorno --semilla 0
+.\.venv\Scripts\python.exe -m src.train --modelo lstm --objetivo retorno --semilla 1
+.\.venv\Scripts\python.exe -m src.train --modelo lstm --objetivo retorno --semilla 2
+.\.venv\Scripts\python.exe -m src.train --modelo gru  --objetivo retorno --semilla 0
+.\.venv\Scripts\python.exe -m src.train --modelo gru  --objetivo retorno --semilla 1
+.\.venv\Scripts\python.exe -m src.train --modelo gru  --objetivo retorno --semilla 2
 
-# 5) Tabla comparativa (media ± desviación)
-python -m src.evaluation.compare
+# 5) Tabla comparativa (media ± desviación) e imprime en consola
+.\.venv\Scripts\python.exe -m src.evaluation.compare
 
-# 6) Predicción de mañana en JSON + gráfica (lo que consume el frontend)
-python -m src.predict --modelo lstm --objetivo retorno --semilla 0
+# 6) Predicción de mañana: imprime JSON y guarda la gráfica
+.\.venv\Scripts\python.exe -m src.predict --modelo lstm --objetivo retorno --semilla 0
 # --dias N controla cuántos días de historial se dibujan (por defecto 90)
+
+# 7) Pruebas
+.\.venv\Scripts\python.exe -m pytest -q
+
+# 8) Ver resultados
+Get-Content .\results\metrics\comparacion.csv
+Get-ChildItem .\results\figures
 ```
+
+> Si ya tienes `data/processed/dataset.npz` y los modelos entrenados, puedes
+> saltar directo al paso 5. Pero si vuelves a ejecutar `download` + `prepare`,
+> **debes reentrenar**, porque el split congelado cambia y los artefactos viejos
+> quedan desalineados.
 
 ## Salidas
 
@@ -72,51 +119,70 @@ results/figures/<modelo>_<objetivo>_seed<k>.png
 results/figures/prediccion_<modelo>_<objetivo>_seed<k>.png   # historial + punto predicho
 ```
 
-## Resultados (datos hasta 2026-10-31, test de 656 días)
+## Resultados (datos hasta 2026-11-06, test de 657 días)
 
 | Modelo | Objetivo | MAE (USD) | RMSE (USD) | MAPE (%) | Acierto dirección (%) |
 |---|---|---|---|---|---|
-| Persistencia (naive) | precio | **9.69** | **15.04** | **2.68** | 1.5 |
-| ARIMA(2,0,1) | precio | 9.94 | 15.40 | 2.75 | 47.1 |
-| LSTM 2×100 | retorno | 9.99 ± 0.06 | 15.47 ± 0.08 | 2.76 ± 0.02 | 50.4 ± 0.5 |
-| GRU 2×100 | retorno | 10.11 ± 0.24 | 15.56 ± 0.29 | 2.80 ± 0.07 | 47.9 ± 3.2 |
-| Media móvil 7 días | precio | 15.20 | 25.02 | 4.12 | 54.6 |
+| Persistencia (naive) | precio | **9.75** | **15.09** | **2.67** | 1.5 |
+| GRU 2×100 | retorno | 9.87 ± 0.10 | 15.29 ± 0.12 | 2.70 ± 0.03 | 51.0 ± 1.1 |
+| LSTM 2×100 | retorno | 9.96 ± 0.08 | 15.37 ± 0.11 | 2.72 ± 0.02 | 48.1 ± 1.5 |
+| ARIMA(2,0,1) | precio | 10.01 | 15.46 | 2.74 | 47.2 |
+| Media móvil 7 días | precio | 15.22 | 25.04 | 4.09 | 54.6 |
 
-Lectura: **ninguna red supera a la persistencia** en MAE/RMSE/MAPE, y la
-diferencia entre LSTM y GRU es menor que su variación entre semillas. La media
-móvil y la GRU aciertan más la dirección, pero con un error de nivel mucho mayor,
-así que no son mejores para predecir el precio. Este resultado es consistente con
-lo observado en el notebook del laboratorio y es la conclusión honesta del
-experimento (no se debe afirmar que la LSTM "gana" si no lo hace).
+Lectura: **ninguna red supera a la persistencia** en MAE/RMSE/MAPE. En esta
+corrida la GRU queda levemente por delante de la LSTM, pero la diferencia entre
+ambas es menor que su variación entre semillas. En dirección, la media móvil
+acierta más (54.6 %) pero con un error de nivel mucho mayor; LSTM/GRU rondan el
+50 %, es decir, cerca del azar. El 1.5 % del naive **no es comparable**: el naive
+nunca predice subida/bajada (siempre dice "igual"), así que casi siempre falla la
+dirección por definición.
+
+Conclusión honesta: las redes **no** demuestran una ventaja predictiva sobre la
+persistencia para el cierre diario de XMR. Un resultado negativo también es un
+resultado válido y así se reporta.
 
 ## Contrato JSON para el frontend
 
 `python -m src.predict --modelo lstm --objetivo retorno --semilla 0` imprime por
-`stdout` (los logs van a `stderr`):
+`stdout` (los logs y la ruta de la figura van a `stderr`):
 
 ```json
 {
   "modelo": "lstm",
   "objetivo": "retorno",
   "semilla": 0,
-  "fecha_ultimo_dato": "2026-10-30",
-  "fecha_prediccion": "2026-10-31",
-  "precio_actual": 587.78,
-  "precio_predicho": 592.1,
-  "cambio_pct": 0.73,
+  "fecha_ultimo_dato": "2026-11-06",
+  "fecha_prediccion": "2026-11-07",
+  "precio_actual": 619.47,
+  "precio_predicho": 619.56,
+  "cambio_pct": 0.01,
   "direccion": "sube",
-  "metricas_test": {"MAE": 12.3, "RMSE": 17.81, "MAPE": 2.79, "acierto_direccion": 51.4}
+  "metricas_test": {"MAE": 9.99, "RMSE": 15.42, "MAPE": 2.73, "acierto_direccion": 47.03}
 }
 ```
 
+Además guarda la gráfica del historial reciente más el punto predicho en
+`results/figures/prediccion_<modelo>_<objetivo>_seed<k>.png`.
+
 ## Pruebas
 
-```bash
-python -m pytest -q
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
 Cubren métricas, contrato `fit`/`predict`, ausencia de leakage y la alineación
 1:1 entre ventanas, precios reales, fechas y base de retornos.
+
+## Solución de problemas
+
+| Síntoma | Causa / solución |
+|---|---|
+| `No module named 'yfinance'` (o `tensorflow`, `statsmodels`, `matplotlib`) | El entorno no tiene las dependencias: `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` |
+| `No module named src.data.prepare` | No estás dentro de `proyecto final`, o falta el archivo. Verifica con `Get-ChildItem .\src\data`. |
+| Texto rojo con `Pandas4Warning` / `NativeCommandError` | Son advertencias por `stderr`, no errores. Usa `$env:PYTHONWARNINGS = "ignore"`. |
+| `Activate.ps1 cannot be loaded` | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` |
+| El comando usa un Python equivocado | Usa la ruta explícita `.\.venv\Scripts\python.exe ...` en vez de `python ...` |
+| `git push` rechazado (`fetch first`) | `git pull --rebase origin master` y luego `git push origin master` |
 
 ## Nota metodológica
 
