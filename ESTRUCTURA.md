@@ -183,8 +183,9 @@ python -m src.train --modelo gru            --objetivo retorno --semilla 0
 # 4) tabla comparativa final (results/metrics/comparacion.csv)
 python -m src.evaluation.compare
 
-# 5) predicción del día siguiente (lo que consume el frontend)
+# 5) predicción del día siguiente (JSON para el frontend + gráfica)
 python -m src.predict --modelo lstm --objetivo retorno
+# guarda results/figures/prediccion_<modelo>_<objetivo>_seed<k>.png
 ```
 
 ---
@@ -249,6 +250,7 @@ models/<modelo>_<objetivo>_scaler.json       # min/max usados al entrenar
 results/metrics/<modelo>_<objetivo>_seed<k>.json
 results/predictions/<modelo>_<objetivo>_seed<k>_test.csv
 results/figures/<modelo>_<objetivo>_seed<k>.png
+results/figures/prediccion_<modelo>_<objetivo>_seed<k>.png   # historial + punto predicho
 ```
 
 ---

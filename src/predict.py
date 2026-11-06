@@ -12,6 +12,7 @@ from src.config import (
     DATA_PROCESSED_DIR,
     MODELS_DIR,
     RESULTS_METRICS_DIR,
+    RESULTS_FIG_DIR,
     WINDOW_SIZE,
 )
 from src import REGISTRY
@@ -50,7 +51,52 @@ def _metricas_test(modelo, objetivo, semilla):
     }
 
 
-def predecir(modelo_nombre, objetivo, semilla):
+def _graficar_prediccion(nombre, fechas, precios, precio_predicho, cambio_pct, fecha_pred, dias, ruta):
+    """Dibuja el historial reciente y el punto predicho para el dia siguiente."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    n = min(dias, len(precios))
+    hist_fechas = pd.to_datetime(fechas[-n:])
+    hist_precios = precios[-n:, 0]
+    f_pred = pd.to_datetime(fecha_pred)
+
+    fig, ax = plt.subplots(figsize=(11, 4.5))
+    ax.plot(hist_fechas, hist_precios, color="#1f77b4", linewidth=1.5, label="Precio real")
+    ax.plot(
+        [hist_fechas[-1], f_pred],
+        [hist_precios[-1], precio_predicho],
+        color="#d62728",
+        linestyle="--",
+        linewidth=1.2,
+    )
+    ax.scatter([f_pred], [precio_predicho], color="#d62728", zorder=5, s=45, label="Prediccion")
+
+    etiqueta = f"{precio_predicho:.2f} USD ({cambio_pct:+.2f}%)"
+    ax.annotate(
+        etiqueta,
+        (f_pred, precio_predicho),
+        textcoords="offset points",
+        xytext=(-8, 12),
+        ha="right",
+        color="#d62728",
+        fontsize=9,
+        fontweight="bold",
+    )
+
+    ax.set_title(f"XMR-USD - {nombre}")
+    ax.set_ylabel("Precio (USD)")
+    ax.grid(alpha=0.3)
+    ax.legend()
+    fig.autofmt_xdate()
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=120)
+    plt.close(fig)
+
+
+def predecir(modelo_nombre, objetivo, semilla, dias=90):
     ruta_csv = os.path.join(DATA_RAW_DIR, "xmr_usd_diario.csv")
     ruta_npz = os.path.join(DATA_PROCESSED_DIR, "dataset.npz")
     if not os.path.exists(ruta_csv) or not os.path.exists(ruta_npz):
@@ -114,6 +160,16 @@ def predecir(modelo_nombre, objetivo, semilla):
     fecha_ultimo = fechas[-1]
     fecha_pred = (dt.date.fromisoformat(fecha_ultimo) + dt.timedelta(days=1)).isoformat()
 
+    os.makedirs(RESULTS_FIG_DIR, exist_ok=True)
+    ruta_fig = os.path.join(RESULTS_FIG_DIR, f"prediccion_{nombre}.png")
+    try:
+        _graficar_prediccion(
+            nombre, fechas, precios, precio_predicho, cambio_pct, fecha_pred, dias, ruta_fig
+        )
+        _log(f"Figura: {ruta_fig}")
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Aviso al generar la figura: {exc}")
+
     return {
         "modelo": modelo_nombre,
         "objetivo": objetivo,
@@ -133,13 +189,25 @@ def main():
     parser.add_argument("--modelo", required=True, choices=list(REGISTRY.keys()))
     parser.add_argument("--objetivo", default="precio", choices=["precio", "retorno"])
     parser.add_argument("--semilla", type=int, default=0)
+    parser.add_argument(
+        "--dias",
+        type=int,
+        default=90,
+        help="Dias de historial que se muestran en la grafica (por defecto 90).",
+    )
     args = parser.parse_args()
 
     if args.objetivo == "retorno" and args.modelo not in ("lstm", "gru"):
         raise SystemExit("El objetivo 'retorno' solo aplica a lstm y gru.")
 
     _log(f"Prediciendo manana con {args.modelo.upper()} ({args.objetivo}, seed {args.semilla})...")
-    print(json.dumps(predecir(args.modelo, args.objetivo, args.semilla), indent=2, ensure_ascii=False))
+    print(
+        json.dumps(
+            predecir(args.modelo, args.objetivo, args.semilla, args.dias),
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
 
 
 if __name__ == "__main__":

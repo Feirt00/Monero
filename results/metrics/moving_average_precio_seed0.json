@@ -2,10 +2,10 @@
     "modelo": "moving_average",
     "objetivo": "precio",
     "semilla": 0,
-    "mae": 15.197350734617652,
-    "rmse": 25.016637603291237,
-    "mape": 4.1225622018196795,
-    "acierto_direccion": 54.57317073170732,
-    "segundos_entrenamiento": 0.04,
-    "n_test": 656
+    "mae": 15.222544601052244,
+    "rmse": 25.042144452512286,
+    "mape": 4.0901320962558385,
+    "acierto_direccion": 54.64231354642314,
+    "segundos_entrenamiento": 0.02,
+    "n_test": 657
 }

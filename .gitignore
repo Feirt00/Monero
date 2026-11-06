@@ -19,3 +19,8 @@ Thumbs.db
 
 # Temporales de Word/Office
 ~$*
+
+# Notas internas y laboratorio que no van al repositorio
+segunclaude.md
+*claude*.md
+rnn_lstm_gru_y_finance*.ipynb

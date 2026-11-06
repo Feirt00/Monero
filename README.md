@@ -55,8 +55,9 @@ python -m src.train --modelo gru  --objetivo retorno --semilla 2
 # 5) Tabla comparativa (media ± desviación)
 python -m src.evaluation.compare
 
-# 6) Predicción de mañana en JSON (lo que consume el frontend)
+# 6) Predicción de mañana en JSON + gráfica (lo que consume el frontend)
 python -m src.predict --modelo lstm --objetivo retorno --semilla 0
+# --dias N controla cuántos días de historial se dibujan (por defecto 90)
 ```
 
 ## Salidas
@@ -68,6 +69,7 @@ results/metrics/comparacion.csv                  # media ± desviación por mode
 results/metrics/comparacion_detalle.csv          # una fila por corrida
 results/predictions/<modelo>_<objetivo>_seed<k>_test.csv
 results/figures/<modelo>_<objetivo>_seed<k>.png
+results/figures/prediccion_<modelo>_<objetivo>_seed<k>.png   # historial + punto predicho
 ```
 
 ## Resultados (datos hasta 2026-10-31, test de 656 días)

@@ -2,10 +2,10 @@
     "modelo": "lstm",
     "objetivo": "retorno",
     "semilla": 2,
-    "mae": 10.030727175989503,
-    "rmse": 15.539940859889372,
-    "mape": 2.7709486497413423,
-    "acierto_direccion": 50.15243902439024,
-    "segundos_entrenamiento": 39.89,
-    "n_test": 656
+    "mae": 9.845850331073262,
+    "rmse": 15.21901078304459,
+    "mape": 2.697059477097847,
+    "acierto_direccion": 50.2283105022831,
+    "segundos_entrenamiento": 43.05,
+    "n_test": 657
 }

@@ -2,10 +2,10 @@
     "modelo": "naive",
     "objetivo": "precio",
     "semilla": 0,
-    "mae": 9.685434062306474,
-    "rmse": 15.035187986547601,
-    "mape": 2.6834057420397928,
-    "acierto_direccion": 1.524390243902439,
-    "segundos_entrenamiento": 0.04,
-    "n_test": 656
+    "mae": 9.7461100539116,
+    "rmse": 15.089794448559221,
+    "mape": 2.671888721229138,
+    "acierto_direccion": 1.5220700152207,
+    "segundos_entrenamiento": 0.01,
+    "n_test": 657
 }
